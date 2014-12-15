@@ -1,7 +1,7 @@
 ////ranking-lib.h
 
 typedef struct Rankings{
-	int** ranks;   // associated rule numbers in each rank
+	int** ranks;   // associated rule numbers in each rank // 2D array with rank as rows and rules number as columns
 	int** async_selected;
 	int* rankno;   // current items per rank
 	int* maxrank;  // max items per rank. (unbounded)

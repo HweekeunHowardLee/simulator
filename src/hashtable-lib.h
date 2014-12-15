@@ -5,6 +5,7 @@
 
 #define bool int
 
+/* store the state */
 struct nlist { /* table entry: */
     struct nlist *next; /* next entry in chain */
     char *name; /* name of molecule */
@@ -15,11 +16,11 @@ struct nlist { /* table entry: */
 struct ht_nlist{
 	struct nlist** ht;
 	int hashsize;
-	char** inputs;
 	int currNoInputs;
 	int maxInputs;
-	int* iStates;
-	int* iRounds;
+	char** inputs; //string array
+	int* iStates;  //integer array
+	int* iRounds;  //integer array
 	int** averages;
 	int currAvg;
 };

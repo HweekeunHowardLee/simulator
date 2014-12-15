@@ -6,15 +6,16 @@
 #define bool int
 #define INITIAL_SIZE 16;
 
+//check toggle 
 void update_roundStates(void* hashtabwrapper, int currRound){
 	char* currinput;
 	int num;
 	bool currState;
 	bool newState;
 	struct ht_nlist* ht_wrapper = (struct ht_nlist*) hashtabwrapper;
-	for (int i=0;i<ht_wrapper->currNoInputs;i++){
+	for (int i = 0; i < ht_wrapper->currNoInputs; i++) {
 		currinput = ht_wrapper->inputs[i];
-		num = lookup_roundnum(ht_wrapper, currinput);
+		num = lookup_roundnum(ht_wrapper, currinput); 
 		if (currRound == num){
 			//printf("%i detected..\n", currRound);
 			currState = (lookup_bool(ht_wrapper, currinput));
@@ -66,9 +67,9 @@ void init_ht(void* hashtabwrapper, int hashsizeno){
 void init_averages(void* hashtabwrapper, int cycles, int rulesno){
 	struct ht_nlist* ht_wrapper = (struct ht_nlist*) hashtabwrapper;
 	ht_wrapper->averages = (int**) calloc(ht_wrapper->currNoInputs, sizeof(int*));
-	for (int i=0;i<ht_wrapper->currNoInputs;i++){
+	for (int i = 0; i < ht_wrapper->currNoInputs; i++) {
 		ht_wrapper->averages[i] = (int*) calloc(cycles*rulesno+1,sizeof(int));
-		for (int j=0;j<cycles*rulesno+1;j++){
+		for (int j = 0; j < cycles*rulesno+1; j++) {
 			ht_wrapper->averages[i][j] = 0;
 		}
 	}
@@ -89,7 +90,7 @@ struct nlist *lookup(void* hashtabwrapper, char *s)
     struct nlist *np;
 	struct ht_nlist* ht_wrapper = (struct ht_nlist*) hashtabwrapper;
 	struct nlist** ht = ht_wrapper->ht;
-    for (np = ht[hash(s, ht_wrapper->hashsize)]; np != NULL; np = np->next)
+    for (np = ht[hash(s, ht_wrapper->hashsize)]; np != NULL; np = np->next) //collision
         if (strcmp(s, np->name) == 0)
           return np;
     return NULL;
@@ -125,7 +126,7 @@ int lookup_roundnum(void* hashtabwrapper, char* s)
     return 0;
 }
 
-/* install: put (name, currState) in hashtab */
+/* install: put (name, currState) in hashtable */
 void install(void* hashtabwrapper, char *name, bool currState, int num)
 {
     struct nlist *np;
@@ -133,11 +134,13 @@ void install(void* hashtabwrapper, char *name, bool currState, int num)
 	struct nlist** ht = ht_wrapper->ht;
 	int hashsizeno = ht_wrapper->hashsize;
     unsigned hashval;
-	/* create new item */
+
 	np = lookup(hashtabwrapper, name);
+	/* create new item */
     if (np == NULL) {
         np = (struct nlist *) malloc(sizeof(struct nlist));
         hashval = hash(name, hashsizeno);
+        //append to the head of the list
         np->next = ht[hashval];
 		np->state = currState;
 		np->name = name;
@@ -178,16 +181,15 @@ void restoreIStates(void* hashtabwrapper){
 	for (int i=0;i<ht_wrapper->currNoInputs;i++){
 		install(ht_wrapper, ht_wrapper->inputs[i], ht_wrapper->iStates[i], ht_wrapper->iRounds[i]);
 	}
-	//printf("restored initial states.\n");
 	ht_wrapper->currAvg = 0;
 }
 
 void incAverages(void* hashtabwrapper){
 	int tempBool;
 	struct ht_nlist* ht_wrapper = (struct ht_nlist*) hashtabwrapper;
-	for (int i=0;i<ht_wrapper->currNoInputs;i++){
+	for (int i = 0; i < ht_wrapper->currNoInputs; i++) {
 		tempBool = lookup_bool(ht_wrapper,ht_wrapper->inputs[i]);
-		ht_wrapper->averages[i][ht_wrapper->currAvg]+=tempBool;
+		ht_wrapper->averages[i][ht_wrapper->currAvg] += tempBool;
 	}
 	ht_wrapper->currAvg++;
 }
@@ -195,12 +197,12 @@ void incAverages(void* hashtabwrapper){
 void printAverages(FILE *stream, void* hashtabwrapper, int cycles, int rulesno, int rtype){
 	struct ht_nlist* ht_wrapper = (struct ht_nlist*) hashtabwrapper;
 	char temp[32]; //shouldnt exceed this?
-	/*rtype == 1 implies ca*/
-	int totalno = (rtype)? cycles*rulesno+1: cycles+1;
+	/*rtype == 1 implies ca, otherwise ra*/
+	int totalno = (rtype)? cycles*rulesno + 1: cycles + 1; // "+1" is because of the initial state
 	fprintf(stream, "Frequency Summary:\n");
-	for (int i=0;i<ht_wrapper->currNoInputs;i++){
+	for (int i = 0; i < ht_wrapper->currNoInputs; i++) {
 		fprintf(stream, ht_wrapper->inputs[i]);
-		for (int j=0;j<totalno;j++){
+		for (int j = 0; j < totalno; j++) {
 			sprintf(temp," %d",ht_wrapper->averages[i][j]);
 			fprintf(stream,temp);
 		}
@@ -211,13 +213,14 @@ void printAverages(FILE *stream, void* hashtabwrapper, int cycles, int rulesno, 
 void printAverages_short(FILE *stream, void* hashtabwrapper, int cycles, int rulesno, int rtype){
 	struct ht_nlist* ht_wrapper = (struct ht_nlist*) hashtabwrapper;
 	char temp[32]; //shouldnt exceed this?
-	/*rtype == 1 implies ca*/
+	/*rtype == 1 implies ca, otherwise ra*/
 	//int totalno = (rtype)? cycles*rulesno+1: cycles+1;
+	
 	int temp1;
 	fprintf(stream, "Frequency Summary:\n");
-	for (int i=0;i<ht_wrapper->currNoInputs;i++){
+	for (int i = 0; i < ht_wrapper->currNoInputs; i++){
 		fprintf(stream, ht_wrapper->inputs[i]);
-		for (int j=0;j<=cycles;j++) {
+		for (int j = 0; j <= cycles; j++) {
 		  temp1 = rulesno*j;
 		  sprintf(temp," %d",ht_wrapper->averages[i][temp1]);
 		  fprintf(stream,temp);

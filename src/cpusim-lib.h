@@ -18,12 +18,12 @@ typedef struct ModelDat{
 	struct AllRBlock* ruleblocks;
 }ModelDat;
 
-
+char** tokenize(char** strArr, char* str);
 void freeData(void *data);
-int parseStates(char*word, void *data);
-int parseRules(char*word, void *data);
+void parseStates(char*word, void *data);
+void parseRules(char*word, void *data);
 void printFile(FILE *stream, void *data, int runNo);
-void printFile_short(FILE *stream, void *data, int runNo);
+void printFile_short(FILE *stream, void *data, int runNo, int rulesNum, int cyclesNum);
 void printHeader(FILE *stream, char* infilename, int nrums, int ncycles);
 void printStates(void *data);
 void* loadFile(char *infileName, int cyclesNo);

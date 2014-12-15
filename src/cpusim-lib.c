@@ -31,34 +31,37 @@ void* loadFile( char * infileName, int cyclesNo){
 	char* temprule;
     data = (ModelDat*) malloc(sizeof(ModelDat));
     infile = fopen(infileName,"rt");
-    if (infile == NULL)
-    {
-    printf("Can't open %s for output.\n", infileName);
-    exit(EXIT_FAILURE);
+    
+    if (infile == NULL) {
+    	printf("Can't open %s for output.\n", infileName);
+    	exit(EXIT_FAILURE);
     }
     printf("opened file..\n");
+
 	data->CyclesNo = cyclesNo;
-	data->MaxRuleCount = INITIAL_MAXRULECOUNT;
+	data->MaxRuleCount = INITIAL_MAXRULECOUNT; //200
 	data->RulesNo = 0;
 	data->hashbooltable = (struct ht_nlist*) malloc(sizeof(struct ht_nlist));
-	init_ht(data->hashbooltable, HASHSIZE);
+	init_ht(data->hashbooltable, HASHSIZE); //HASHSIZE = 1024
 	data->Rules = (char**) calloc(data->MaxRuleCount, sizeof(char*));
 	data->ranks = (Rankings*) malloc(sizeof(Rankings));
 	init_ranks(data->ranks, MAX_RANKS);
 	data->ruleblocks = (AllRBlock*) malloc(sizeof(AllRBlock));
 	init_ruleblock(data->ruleblocks);
+
 	//initialize states
-    while (fgetline_123(&buffer,infile))
-    {
-	  if (strstr("Rules:",buffer)!=NULL){ break; }
-      parseStates(buffer, data);
-	  //printf("state line detected!\n");
+    while (fgetline_123(&buffer,infile)) {
+	  if (strstr("Rules:",buffer) != NULL) 
+	  	break;
+      parseStates(buffer, data); //parse initial states
     }
+
 	//initialize rules
     while (fgetline_123(&buffer,infile))
     {
+      //check if there is any block rules
 	  //reads block rule
-	  if (strstr(buffer,"{")!=NULL){
+	  if (strstr(buffer,"{") != NULL){
 	    //fprintf(stderr, "buffer: %s\n", buffer);
 		temprank = "0";
 		tempasync = "0";
@@ -89,17 +92,17 @@ void* loadFile( char * infileName, int cyclesNo){
 		}
 		continue;
 	  }
-	  //fprintf(stderr, "nonblockedbuffer: %s\n", buffer);
+	  
 	  parseRules(buffer, data); 
     }
-    //fprintf(stderr, "I'm here!\n");
+    
 	/*assumes all states and inputs are loaded*/
 	//init_roundTogger(data->roundToggler, data->inputsNo);
 	//printf("A total of %i rules are loaded.\n",data->RulesNo);
 	init_averages(data->hashbooltable,cyclesNo,data->RulesNo);
     fclose(infile);
     printf("loaded file.\n");
-	
+
     return data;
 }
 
@@ -113,58 +116,56 @@ void freeData(void *data){
 	free(m);
 }
 
-int parseStates(char *word,void* data){	
+void parseStates(char *word,void* data){	
 	//ignore empty lines
 	int rt;
-	if (strcmp(word,"")==0){
-		return 1;
+	if (strcmp(word,"") == 0 || strstr(word, "Rules:") != NULL){
+		return;
 	}
+
     ModelDat *m = (ModelDat*) data;
     char* pch;
 	char* valueName;
 	int initState = -1;
-	if (strstr("Rules:",word)!=NULL){
-		return 1;
-	}
+
 	//assume only one init value per line
 	pch = strtok (word," =");
-	valueName = pch;
-	//printf("%s\n",valueName);
-	pch = strtok (NULL," =");
-	if (strcmp("True",pch)==0 || strcmp("True;",pch)==0){
+	valueName = pch; // NAD = False --> valueName = NAD
+	pch = strtok (NULL," ="); // NAD = False --> pch = False
+	
+	if (strstr(pch, "True") != NULL) {
 		initState = 1;
-	} else if (strcmp("False",pch)==0 || strcmp("False;",pch)==0){
+	} else if (strstr(pch, "False") != NULL) {
 		initState = 0;
 	} else {
 		printf("ERROR: unknown state detected for %s!\n", valueName);
 	}
-	//gets round toggler
+
+	//gets round toggler //TODO don't use this for now
 	rt = -1;
-	if ((pch=strtok (NULL," =")) != NULL){
+	if ((pch = strtok (NULL," =")) != NULL){
 		//round toggler found
 		//supposed to be >0
 		rt = atoi(pch)-1; 
 		if (rt<0){
 			printf("ERROR: toggle state for %s was found to be <=0, undefined behavior WILL occur!!\n", valueName);
 		}
-		//printf("step number of %s is %s.\n", valueName, pch);
 	}
 	if (initState==-1){
 		printf("ERROR in parsing states!!\n ..undefined behavior will be expected!\n");
 	}
+
 	install(m->hashbooltable, valueName, initState, rt);
-	if (PRINT_DETAILS){
-	  //printf("#%i: %s is initialized with state:%i that will toggle on step %i\n",m->hashbooltable->currNoInputs-1,valueName,lookup_bool(m->hashbooltable,valueName),rt);
-	}
-	return 1;
+	return;
 }
 
-int parseRules(char *word,void* data){
+void parseRules(char *word, void* data){
 	char* pch;
 	//ignore empty lines
-	if (strcmp(word,"")==0 || strstr(word,"Rules:")!=NULL){
-		return 1;
+	if (strcmp(word,"") == 0 || strstr(word,"Rules:") != NULL){
+		return;
 	}
+
     ModelDat *m = (ModelDat*) data;
 	
 	if (m->RulesNo >= m->MaxRuleCount){
@@ -173,28 +174,26 @@ int parseRules(char *word,void* data){
 		for (int i=0;i<m->MaxRuleCount;i++){
 			tempRules[i] = m->Rules[i];
 		}
-		//free(m->Rules);
+		free(m->Rules);
 		m->Rules = tempRules;
 		m->MaxRuleCount*=2;
 	}
+
 	searchReplace(word," ","");
-	if (strstr(word,":")!=NULL){ //false = no rankings
+
+	if (strstr(word,":") != NULL) { //false = no rankings
 		pch = strtok(word,":"); //gets the rank
 		addRanking(m->ranks, m->RulesNo, atoi(pch), 0);
 		pch = strtok (NULL, ":"); //gets the word
 		word = pch;
 	} else {
-		addRanking(m->ranks, m->RulesNo, 0, 0);
-		//adds everything to rank 0
+		addRanking(m->ranks, m->RulesNo, 0, 0); //adds everything to rank 0
 	}
-	//printf("%s\n",word);
+	
 	(m->Rules)[m->RulesNo] = (char*) malloc(strlen(word)+1);
-	strcpy((m->Rules)[m->RulesNo],word);
-	if (PRINT_DETAILS){
-	  //printf("r%i: %s\n",m->RulesNo,(m->Rules)[m->RulesNo]);
-	}
+	strcpy((m->Rules)[m->RulesNo], word);
 	m->RulesNo++;
-	return 1;
+	return;
 }
 
 void cycle_async(void *data){
@@ -224,31 +223,29 @@ void cycle_async(void *data){
 	bool* csresult;
 	tempitoa = (char*)malloc(sizeof(char)+1);
 	rankTotal = getNoRanks(m->ranks);
-	//printf("TOTAL RANKS IS %i.\n",rankTotal);
-	for (int i=0;i<cycles;i++){
+	
+	for (int i = 0; i < cycles; i++) {
 		update_roundStates(m->hashbooltable, i);
-		for (int q=0;q<rankTotal;q++){
-			rankamt = getRankAmt(m->ranks, q);
-			if (DEBUG_RANK){/*printf("computing for rank %i with %i instructions in CA mode..\n",q,rankamt);*/} 
+		for (int q = 0; q < rankTotal; q++) {
+			rankamt = getRankAmt(m->ranks, q); 
 			rArray = (int*) calloc(rankamt,sizeof(int));
-			uniqueRandomArray(rArray,rankamt);
-			for (int j=0;j<rankamt;j++){
+			uniqueRandomArray(rArray,rankamt); //get an array with random order
+
+			for (int j = 0; j < rankamt; j++) { //iterate through the rankamt
 				currRuleNo = getRankRuleNum(m->ranks, rArray[j], q);
-				//fprintf(stderr, "current rule no is from random number of %d with value of %d\n",rArray[j],currRuleNo);
 				currRuleAsync = getRankAsyncBool(m->ranks, rArray[j], q);
-				//check if current rule is a block rule
-				if (ruleNoToIndex(m->ruleblocks, currRuleNo)!=-1){
-				  //fprintf(stderr,"Test cycle 1\n");
+	
+				//check if current rule is a block rule //TODO need to debug this
+				if (ruleNoToIndex(m->ruleblocks, currRuleNo) != -1) {
 					//perform cs here
-				  //fprintf(stderr,"ruleblock detected!\n");	
 					rblocksize = getrblocksize(m->ruleblocks, currRuleNo);
 					//fprintf(stderr,"rule block size: %d\n",rblocksize);
 					csoutput = (char**) calloc(rblocksize,sizeof(char*));
 					csresult = (bool*) calloc(rblocksize,sizeof(bool));
 					csroundnum = (int*) calloc(rblocksize,sizeof(int));
+
 					////fprintf(stderr,"Test cycle 2\n");
-					for (int rs=0;rs<rblocksize;rs++){
-					  
+					for (int rs = 0; rs < rblocksize; rs++) {
 						currRule = strdup(getRuleFromBlock(m->ruleblocks, currRuleNo, rs));
 						//printf("Current rule: %s\n", currRule);
 						/*assumes 1 equation per line*/
@@ -290,42 +287,34 @@ void cycle_async(void *data){
 					/*async or sync makes no difference*/
 					currRule = (char*) malloc(strlen(m->Rules[currRuleNo])+1);
 					strcpy(currRule, m->Rules[currRuleNo]);
-					//printf("current non-blocked rule is %s\n",currRule);
-					///printf("%s  > ",currRule);
+
 					/*assumes 1 equation per line*/
-					pch = strtok (currRule," =");
+					pch = strtok (currRule," ="); //left value
 					output = (char*) malloc(strlen(pch)+1);
-					strcpy(output,pch);
-					pch = strtok (NULL," =");
+					strcpy(output,pch);//left value
+					pch = strtok (NULL," ="); //right value
 					tempexpr = (char*) malloc(strlen(pch)+1);
-					expr = (char*) malloc(strlen(pch)+1);
+					expr = (char*) malloc(strlen(pch)+1);//right value
 					strcpy(tempexpr, pch);
 					strcpy(expr, pch);
 					expr[strlen(expr)-1] = '\0';
-					//printf("%s\n",expr);
+
 					pch1 = strtok(tempexpr," !+*();");
-                    //printf("before non-blocked expression is %s\n",expr);
+                  
 					while(pch1!=NULL){
-						///printf("%s ",pch1);
 						test = lookup_bool(m->hashbooltable,pch1);
 						sprintf(tempitoa, "%d", test);
 						bSearchReplace(expr,pch1,tempitoa);
 						pch1 = strtok(NULL," !+*();");
 					}
-					///printf("\n");
 					result = evalBoolExpr(expr);
-					//fprintf(stderr, "non-blocked expression is %s with result %i.\n",expr,result);
 					roundnum = lookup_roundnum(m->hashbooltable,output);
-					//fprintf(stderr,"Round number: %d\n", roundnum);
-					install(m->hashbooltable,output,result, roundnum);
+					install(m->hashbooltable,output,result, roundnum);//update the state
 				}
 				writeResults(m);
-				////fprintf(stderr,"Test cycle 4\n");						
-			}
-			free(rArray);
-		
+			}//end rank
+			free(rArray);	
 		}
-		//writeResults(m);
 		//printf("End cycle %d\n", i+1);
 	}
 }
@@ -419,11 +408,10 @@ void random_async(void *data){
 	int test;
 	int roundnum;
 	tempitoa = (char*)malloc(sizeof(char)+1);
-	for (int i=0; i<cycles; i++){
+	for (int i = 0; i < cycles; i++){
 		update_roundStates(m->hashbooltable, i);
 		srand(CycleTimer::currentTicks());
 		currRuleNo = rand()%totalRulesNo;
-		if (SHOW_RANDOM_ARR){ printf("%i ",currRuleNo); }
 		currRule = (char*) malloc(strlen(m->Rules[currRuleNo])+1);
 		strcpy(currRule, m->Rules[currRuleNo]);
 		/*assumes 1 equation per line*/
@@ -446,20 +434,10 @@ void random_async(void *data){
 		}
 		result = evalBoolExpr(expr);
 		roundnum = lookup_roundnum(m->hashbooltable,output);
-		install(m->hashbooltable,output,result,roundnum);
-		if (PRINT_DETAILS){
-			printf("given %s is %s = %i\n",m->Rules[currRuleNo],expr,result);
-			printStates(m);
-		}
-		//free(currRule);
-		//free(output);
-		//free(tempexpr);
-		//free(expr);
+		install(m->hashbooltable,output,result,roundnum);		
 		writeResults(m); /*each cycle in random_async adds one result*/
 	}
-	if (SHOW_RANDOM_ARR){ printf("\n"); }
-	//free(tempitoa);
-	//printResults(m);
+	free(tempitoa);
 }
 
 
@@ -477,7 +455,7 @@ void searchReplace(char* source, char* searchitem, char* replaceitem){
 			strcat(temp,pch+searchlength);
 			strcpy(pch,temp);
         }
-	//free(temp);
+	free(temp);
 }
 
 #define valid_token(c)  (!((c >= 'A' && c <= 'Z') || c == '_'))
@@ -504,7 +482,7 @@ void bSearchReplace(char* source, char* searchitem, char* replaceitem){
 		}
 		source = pch+1; //move forward to prevent infinite loop
         }
-	//free(temp);
+	free(temp);
 }
 
 void printStates(void *data){
@@ -541,7 +519,7 @@ void writeResults(void *data){
 	ModelDat *m = (ModelDat*) data;
 	char temp[3];
 	int tempBool;
-	for (int i=0;i<(m->inputsNo);i++){
+	for (int i = 0; i < (m->inputsNo); i++) {
 		tempBool = lookup_bool(m->hashbooltable,m->hashbooltable->inputs[i]);
 		sprintf(temp, " %d", tempBool);
 		strcat(m->results[i],temp);
@@ -558,58 +536,39 @@ void printFile(FILE *stream,void *data, int runNo){
 	//printf("saving run #%i..\n",runNo);
 	ModelDat *m = (ModelDat*) data;
 	fprintf(stream,"Run #%i\n",runNo);
-	for(int i=0;i<(m->inputsNo);i++){
+	for(int i = 0; i < (m->inputsNo); i++){
         fprintf(stream,m->results[i]);
         fprintf(stream,"\n");
-		//printf("%i \n",i);
 	}
 	fprintf(stream,"\n");
-	/*
-	for(int i=0;i<(m->inputsNo);i++){
-		free(m->results[i]);
-	}
-	free(m->results);*/
 }
 
-void printFile_short(FILE *stream,void *data, int runNo){
-	//printf("saving run #%i..\n",runNo);
+char** tokenize(char** strArr, char* str) {
+	char* p = strtok (str, " ");
+	int n_spaces = 0;
+
+	while (p) {
+  		strArr = (char**) realloc (strArr, sizeof(char*) * (++n_spaces));
+  		strArr[n_spaces-1] = p;
+  		p = strtok (NULL, " ");
+	}
+  	return strArr;
+}
+
+void printFile_short(FILE *stream,void *data, int runNo, int rulesNum, int cyclesNum){
+	char ** strArr  = NULL;
 	ModelDat *m = (ModelDat*) data;
 	char *values;
 	fprintf(stream,"Run #%i\n",runNo);
-	for(int i=0;i<(m->inputsNo);i++){
-	  //printf("test: %s\n",m->results[i]);
-	  values = strtok(m->results[i]," ");
-	  //printf("test %s\n",values);
-	  fprintf(stream,values);
-	  for (int j=0;j<m->CyclesNo;j++) {
-	    for (int k=0;k<m->RulesNo;k++){
-	      values = strtok (NULL," ");
-	    }
-	    if (strcmp("0",values)==0){
-	      fprintf(stream, " 0");    
-	    } else if (strcmp("1",values)==0){
-	     fprintf(stream, " 1");
-	    } else {
-		printf("ERROR: unknown state detected\n");
-	    }
-	  }
-	  values = strtok (NULL," ");
-	  if (strcmp("0",values)==0){
-	      fprintf(stream, " 0");    
-	    } else if (strcmp("1",values)==0){
-	     fprintf(stream, " 1");
-	    } else {
-		printf("ERROR: unknown state detected\n");
-	    }
-	   
-	  fprintf(stream,"\n");
+	for (int i = 0; i < m->inputsNo; i++) {
+		strArr = tokenize(strArr, m->results[i]);
+		fprintf(stream, strArr[0]);
+		for (int j = 0; j <= cyclesNum; j++) {
+		  int temp1 = rulesNum * j;
+		  fprintf(stream," %s", strArr[temp1+1]);
+		}
+		fprintf(stream, "\n");
 	}
-	fprintf(stream,"\n");
-	/*
-	for(int i=0;i<(m->inputsNo);i++){
-		free(m->results[i]);
-	}
-	free(m->results);*/
 }
 
 void uniqueRandomArray(void *rArray, int alen){
@@ -626,6 +585,7 @@ void uniqueRandomArray(void *rArray, int alen){
 		Y = rand() % (alen);
 		swap(ra[X],ra[Y]);
 	}
+
 	//print
 	// for (int i=0;i<alen;i++){
 		// printf("%i ",ra[i]);
@@ -638,14 +598,3 @@ void swap(int& x, int& y){
 	x = y;
 	y = temp;
 }
-    // int i;
-    // ModelDat *m = (ModelDat*) data;
-
-    // fprintf(stream,m->InputNames);
-    // fprintf(stream,"\n");
-    // fprintf(stream,m->OutputNames);
-    // fprintf(stream,"\n");
-    // for(i=0;i<m->index;i++){
-        // fprintf(stream,m->Equations[i]);
-        // fprintf(stream,"\n");
-    // }
