@@ -23,7 +23,7 @@ void freeData(void *data);
 void parseStates(char*word, void *data);
 void parseRules(char*word, void *data);
 void printFile(FILE *stream, void *data, int runNo);
-void printFile_short(FILE *stream, void *data, int runNo, int rulesNum, int cyclesNum);
+void printFile_short(FILE *stream, void *data, int runNo, int rulesNum, int cyclesNum, int isRa);
 void printHeader(FILE *stream, char* infilename, int nrums, int ncycles);
 void printStates(void *data);
 void* loadFile(char *infileName, int cyclesNo);

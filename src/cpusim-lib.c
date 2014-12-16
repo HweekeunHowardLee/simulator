@@ -408,10 +408,10 @@ void random_async(void *data){
 	int test;
 	int roundnum;
 	tempitoa = (char*)malloc(sizeof(char)+1);
-	for (int i = 0; i < cycles; i++){
+	for (int i = 0; i < cycles; i++) {
 		update_roundStates(m->hashbooltable, i);
 		srand(CycleTimer::currentTicks());
-		currRuleNo = rand()%totalRulesNo;
+		currRuleNo = rand() % totalRulesNo;
 		currRule = (char*) malloc(strlen(m->Rules[currRuleNo])+1);
 		strcpy(currRule, m->Rules[currRuleNo]);
 		/*assumes 1 equation per line*/
@@ -555,7 +555,9 @@ char** tokenize(char** strArr, char* str) {
   	return strArr;
 }
 
-void printFile_short(FILE *stream,void *data, int runNo, int rulesNum, int cyclesNum){
+
+void printFile_short(FILE *stream,void *data, int runNo, int rulesNum, int cyclesNum, int isRa){
+
 	char ** strArr  = NULL;
 	ModelDat *m = (ModelDat*) data;
 	char *values;
@@ -564,7 +566,7 @@ void printFile_short(FILE *stream,void *data, int runNo, int rulesNum, int cycle
 		strArr = tokenize(strArr, m->results[i]);
 		fprintf(stream, strArr[0]);
 		for (int j = 0; j <= cyclesNum; j++) {
-		  int temp1 = rulesNum * j;
+		  int temp1 = isRa == 1? j : rulesNum * j;
 		  fprintf(stream," %s", strArr[temp1+1]);
 		}
 		fprintf(stream, "\n");
@@ -585,12 +587,6 @@ void uniqueRandomArray(void *rArray, int alen){
 		Y = rand() % (alen);
 		swap(ra[X],ra[Y]);
 	}
-
-	//print
-	// for (int i=0;i<alen;i++){
-		// printf("%i ",ra[i]);
-	// }
-	// printf("\n");
 }
 
 void swap(int& x, int& y){

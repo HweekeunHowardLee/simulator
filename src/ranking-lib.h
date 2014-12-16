@@ -15,5 +15,4 @@ int getRankAmt(void* ranklist, int rank);
 int getRankRuleNum(void* ranklist, int randNum, int rank);
 int getRankAsyncBool(void* ranklist, int randNum, int rank);
 int getNoRanks(void* ranklist);
-
 void resizeRank(void* ranklist, int rank);

@@ -5,3 +5,4 @@
 *.ext
 input/
 output/
+.DS_store

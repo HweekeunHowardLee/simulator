@@ -70,9 +70,11 @@ int main(int argc, char *argv[])
   
   for (int i=0;i<numRuns;i++){
 	  init_outfile(data);
+    int isRa = false;
 	  //printf("init outfile %i!!\n",i);
 	  if (strcmp(rtype,"ra") == 0){
       cprint = 0;
+      isRa = 1;
       random_async(data);
 	  } else if (strcmp(rtype,"ca") == 0){
       cprint = 1;
@@ -81,7 +83,7 @@ int main(int argc, char *argv[])
 
 	  /*writing to file */
 	  if (strcmp(outType,"short") == 0){
-	    printFile_short(outfile, data, i, data->RulesNo, numCycles);
+	    printFile_short(outfile, data, i, data->RulesNo, numCycles, isRa);
 	  } else {
       printFile(outfile, data, i);
 	  }
@@ -92,13 +94,13 @@ int main(int argc, char *argv[])
   }
   
   //print summary
-  
+  /*
   //differnet ways of generating output
   if (strcmp(outType,"short") == 0){
     printAverages_short(outfile, data->hashbooltable, numCycles, data->RulesNo, cprint);
   } else {
     printAverages(outfile, data->hashbooltable, numCycles, data->RulesNo, cprint);
-  }
+  }*/
 
   endTime = CycleTimer::currentSeconds();
   printf("program ran for %f seconds\n",endTime-startTime);
