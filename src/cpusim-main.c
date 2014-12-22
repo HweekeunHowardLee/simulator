@@ -94,13 +94,13 @@ int main(int argc, char *argv[])
   }
   
   //print summary
-  /*
+  
   //differnet ways of generating output
   if (strcmp(outType,"short") == 0){
     printAverages_short(outfile, data->hashbooltable, numCycles, data->RulesNo, cprint);
   } else {
     printAverages(outfile, data->hashbooltable, numCycles, data->RulesNo, cprint);
-  }*/
+  }
 
   endTime = CycleTimer::currentSeconds();
   printf("program ran for %f seconds\n",endTime-startTime);

@@ -27,5 +27,5 @@ getline.o : getline.c getline.h
 
 booleval-lib.o : booleval-lib.c booleval-lib.h
 		$(CC) $(FLAGS) -c booleval-lib.c
-clear:
+clean:
 	rm -rf *.o cpusim.exe

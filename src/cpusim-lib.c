@@ -10,6 +10,7 @@
 #include "getline.h"
 #include "string.h"
 #include "CycleTimer.h"
+#include "ctype.h"
 
 #define INITIAL_MAXRULECOUNT 200
 #define bool int
@@ -133,9 +134,12 @@ void parseStates(char *word,void* data){
 	valueName = pch; // NAD = False --> valueName = NAD
 	pch = strtok (NULL," ="); // NAD = False --> pch = False
 	
-	if (strstr(pch, "True") != NULL) {
+	for (int i = 0; i < strlen(pch); i++)
+		pch[i] = tolower(pch[i]);
+	
+	if (strstr(pch, "true") != NULL) {
 		initState = 1;
-	} else if (strstr(pch, "False") != NULL) {
+	} else if (strstr(pch, "false") != NULL) {
 		initState = 0;
 	} else {
 		printf("ERROR: unknown state detected for %s!\n", valueName);
@@ -411,7 +415,9 @@ void random_async(void *data){
 	for (int i = 0; i < cycles; i++) {
 		update_roundStates(m->hashbooltable, i);
 		srand(CycleTimer::currentTicks());
-		currRuleNo = rand() % totalRulesNo;
+		int temp = rand();
+		currRuleNo = temp % totalRulesNo;
+		
 		currRule = (char*) malloc(strlen(m->Rules[currRuleNo])+1);
 		strcpy(currRule, m->Rules[currRuleNo]);
 		/*assumes 1 equation per line*/
