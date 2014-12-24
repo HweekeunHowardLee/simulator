@@ -146,7 +146,6 @@ void install(void* hashtabwrapper, char *name, bool currState, int num)
 		np->name = name;
 		np->roundnum = num;
         ht[hashval] = np;
-        printf("%s\n", name);
 		/*if full, realloc*/
 		if (ht_wrapper->currNoInputs == ht_wrapper->maxInputs){
 		printf("%s\n", "Start");
@@ -171,7 +170,6 @@ void install(void* hashtabwrapper, char *name, bool currState, int num)
 		ht_wrapper->iStates[ht_wrapper->currNoInputs] = currState; /*saves initial states*/
 		ht_wrapper->iRounds[ht_wrapper->currNoInputs] = num; /*saves initial rounds*/
 		ht_wrapper->currNoInputs++;
-		printf("%s\n", "End");
     } else { 
 	/* already there and update state */
         np->state = currState;
