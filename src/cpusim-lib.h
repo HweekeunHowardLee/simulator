@@ -11,13 +11,17 @@ typedef struct ModelDat{
 	int inputsNo;
 	int CyclesNo;
 	int MaxRuleCount;
+	int MaxRandomCount;
+	int RandomNo;
 	struct ht_nlist* hashbooltable;
+	char** RandomElement;
 	char** Rules;
 	char** results;
 	struct Rankings* ranks;
 	struct AllRBlock* ruleblocks;
 }ModelDat;
 
+void updateRandom(void* data);
 char** tokenize(char** strArr, char* str);
 void freeData(void *data);
 void parseStates(char*word, void *data);

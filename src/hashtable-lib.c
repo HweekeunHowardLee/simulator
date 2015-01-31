@@ -199,7 +199,7 @@ void printAverages(FILE *stream, void* hashtabwrapper, int cycles, int rulesno, 
 	struct ht_nlist* ht_wrapper = (struct ht_nlist*) hashtabwrapper;
 	char temp[32]; //shouldnt exceed this?
 	/*rtype == 1 implies ca, otherwise ra*/
-	int totalno = (rtype)? cycles*rulesno + 1: cycles + 1; // "+1" is because of the initial state
+	int totalno = (rtype)? cycles*rulesno: cycles; // "+1" is because of the initial state
 	fprintf(stream, "Frequency Summary:\n");
 	for (int i = 0; i < ht_wrapper->currNoInputs; i++) {
 		fprintf(stream, ht_wrapper->inputs[i]);
@@ -221,7 +221,7 @@ void printAverages_short(FILE *stream, void* hashtabwrapper, int cycles, int rul
 	fprintf(stream, "Frequency Summary:\n");
 	for (int i = 0; i < ht_wrapper->currNoInputs; i++){
 		fprintf(stream, ht_wrapper->inputs[i]);
-		for (int j = 0; j <= cycles; j++) {
+		for (int j = 0; j < cycles; j++) {
 		  temp1 = rulesno*j;
 		  sprintf(temp," %d",ht_wrapper->averages[i][temp1]);
 		  fprintf(stream,temp);

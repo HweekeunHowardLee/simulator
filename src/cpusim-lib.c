@@ -41,8 +41,11 @@ void* loadFile( char * infileName, int cyclesNo){
 
 	data->CyclesNo = cyclesNo;
 	data->MaxRuleCount = INITIAL_MAXRULECOUNT; //200
+	data->MaxRandomCount = 200;
 	data->RulesNo = 0;
+	data->RandomNo = 0;
 	data->hashbooltable = (struct ht_nlist*) malloc(sizeof(struct ht_nlist));
+	data->RandomElement = (char**) calloc(200, sizeof(char*));
 	init_ht(data->hashbooltable, HASHSIZE); //HASHSIZE = 1024
 	data->Rules = (char**) calloc(data->MaxRuleCount, sizeof(char*));
 	data->ranks = (Rankings*) malloc(sizeof(Rankings));
@@ -117,6 +120,30 @@ void freeData(void *data){
 	free(m);
 }
 
+void updateRandom(void* data) {
+	ModelDat *m = (ModelDat*) data;
+
+	
+	char* currinput;
+	int num;
+	bool currState;
+	bool newState;
+
+	
+
+	struct ht_nlist* ht_wrapper = (struct ht_nlist*) m->hashbooltable;
+	for (int i = 0; i < ht_wrapper->currNoInputs; i++) {
+		currinput = ht_wrapper->inputs[i];
+		for (int i = 0; i < m->RandomNo; i++) {
+			if (strcmp(currinput,m->RandomElement[i]) == 0 ) {
+				install(ht_wrapper, currinput, rand() % 2 ==1, 0);
+				break;
+			}
+		}
+	}	
+
+}
+
 void parseStates(char *word,void* data){	
 	//ignore empty lines
 	int rt;
@@ -141,6 +168,19 @@ void parseStates(char *word,void* data){
 		initState = 1;
 	} else if (strstr(pch, "false") != NULL) {
 		initState = 0;
+	} else if (strstr(pch, "random") != NULL) { // for random cases
+		if (m->RandomNo >= m->MaxRandomCount) {
+			char ** temp = (char**) calloc(m->MaxRandomCount*2, sizeof(char*));
+			for (int k = 0; k < m->MaxRandomCount; k++)
+				temp[k] = m->RandomElement[k];
+			free(m->RandomElement);
+			m->RandomElement = temp;
+			m->MaxRandomCount *= 2;
+		}
+		(m->RandomElement)[m->RandomNo] = (char*) malloc(strlen(valueName) + 1);
+		strcpy((m->RandomElement)[m->RandomNo], valueName);
+		m->RandomNo++;		
+		initState = rand() % 2 != 1;
 	} else {
 		printf("ERROR: unknown state detected for %s!\n", valueName);
 	}
@@ -227,7 +267,8 @@ void cycle_async(void *data){
 	bool* csresult;
 	tempitoa = (char*)malloc(sizeof(char)+1);
 	rankTotal = getNoRanks(m->ranks);
-	
+	updateRandom(m);
+
 	for (int i = 0; i < cycles; i++) {
 		update_roundStates(m->hashbooltable, i);
 		for (int q = 0; q < rankTotal; q++) {
@@ -313,8 +354,10 @@ void cycle_async(void *data){
 					}
 					result = evalBoolExpr(expr);
 					roundnum = lookup_roundnum(m->hashbooltable,output);
+
 					install(m->hashbooltable,output,result, roundnum);//update the state
 				}
+
 				writeResults(m);
 			}//end rank
 			free(rArray);	
@@ -412,6 +455,7 @@ void random_async(void *data){
 	int test;
 	int roundnum;
 	tempitoa = (char*)malloc(sizeof(char)+1);
+	updateRandom(m);
 	for (int i = 0; i < cycles; i++) {
 		update_roundStates(m->hashbooltable, i);
 		srand(CycleTimer::currentTicks());
@@ -419,6 +463,7 @@ void random_async(void *data){
 		currRuleNo = temp % totalRulesNo;
 		
 		currRule = (char*) malloc(strlen(m->Rules[currRuleNo])+1);
+
 		strcpy(currRule, m->Rules[currRuleNo]);
 		/*assumes 1 equation per line*/
 		pch = strtok (currRule," =");
@@ -510,7 +555,8 @@ void init_outfile(void *data){
 		m->results[i] = (char*) malloc(strlen(m->hashbooltable->inputs[i])+1+((m->CyclesNo)*2*(m->RulesNo)));
 		strcpy(m->results[i],m->hashbooltable->inputs[i]);
 	}
-	writeResults(m);
+
+	//writeResults(m);
 }
 
 void printResults(void *data){
@@ -528,7 +574,9 @@ void writeResults(void *data){
 	for (int i = 0; i < (m->inputsNo); i++) {
 		tempBool = lookup_bool(m->hashbooltable,m->hashbooltable->inputs[i]);
 		sprintf(temp, " %d", tempBool);
+
 		strcat(m->results[i],temp);
+
 	}
 	incAverages(m->hashbooltable);
 }
@@ -571,7 +619,7 @@ void printFile_short(FILE *stream,void *data, int runNo, int rulesNum, int cycle
 	for (int i = 0; i < m->inputsNo; i++) {
 		strArr = tokenize(strArr, m->results[i]);
 		fprintf(stream, strArr[0]);
-		for (int j = 0; j <= cyclesNum; j++) {
+		for (int j = 0; j < cyclesNum; j++) {
 		  int temp1 = isRa == 1? j : rulesNum * j;
 		  fprintf(stream," %s", strArr[temp1+1]);
 		}

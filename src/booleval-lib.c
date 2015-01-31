@@ -148,6 +148,7 @@ bool shunting_yard(const char *input, char *output)
                 // If the stack runs out without finding a left parenthesis, then there are mismatched parentheses.
                 if(!pe)  {
                     printf("Error: parentheses mismatched\n");
+
                     return false;
                 }
                 // Pop the left parenthesis from the stack, but not onto the output queue.
@@ -193,6 +194,7 @@ bool evalBoolExpr(char * expr)  {
     bool tmp;
     char part1[1024], part2[1024];
 
+    
     if(!shunting_yard(expr, output))
       return false;  // oops can't convert to postfix form
 
