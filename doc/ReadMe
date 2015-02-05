@@ -1,0 +1,129 @@
+::Usage: ./cpusim.exe <infileName> <type: ra | ca > <runs> <cycles> <outFilename>
+
+<type> options:
+	ra (random async) = random asynchronous
+	ca (current async) = stochastic simulation algorithm
+
+<infileName> format:
+	v1 = v1InitialState;
+	.
+	.
+	vx = vxInitialState;
+	Rules:
+	v1 = v2*v3+!v4;
+	.
+	.
+	.
+	v4 = v2*v4+!v7;
+
+Review sample.txt and sampleout.txt for samples.
+Example:
+./cpusim.exe model.txt ra 5 10 modelout.txt
+This runs model.txt with the random asynchronous option of 5 runs with 10 cycles each.
+Results will be saved and averages will be computed in modelout.txt
+
+
+
+
+
+ADDITIONAL MODES:
+#0
+There is another mode of operation available in only ca (current async), which allows one to specify rankings of the Rules, ranging from 0 to 9.
+However, note that only 10 ranks are supported at the moment.
+
+NOTE: One MUST start from 0, and increment to 9; if no ranks of 0 are detected, all are ignored.
+NOTE: ALL rules must have the rankings if this mode is to be used; undefined behavior otherwise.
+
+Rules placed within the smallest rank are applied with the ca algorithm first, then the next smallest rank, etc.
+This enables the isolation of certain blocks of rules that you want to run in a specific but random order. 
+
+<infileName> format:
+	v1 = v1InitialState
+	.
+	.
+	vx = vxInitialState
+	Rules:
+	0: v1 = v2*v3+!v4;	//rank 0
+	1: v1 = !(v9*v3+v4);	//rank 1
+	3: v1 = v2*v4;		//rank 3
+	0: v1 = v6+v4;		//rank 0
+	.
+	.
+	.
+	2: v4 = v2*v4+!v7;	//rank 2
+
+In this example, rules from rank 0 are performed using the current async algorithm, before moving on to select rules from rank 1, then rank 2, and finally rank 3.
+This additional feature is only performed if it detects a ranking within the input file. If no rankings are detected, normal execution resumes. 
+
+
+#1
+ca (current async) also supports the addition of ruleblocks, which allows one to specify that this block of rules are synchronously executed.
+Thus, if one should want to execute all the rules synchronously, one will opt to place all rules in one block.
+Alternatively, specifying a wildcard character (*) at the end of the rank number, but before the colon will allow the block of rules to be asynchronously executed, according to the natural ordering specified in the inputs.
+However, note that only up to 10 blocks are supported at the moment.
+
+<infileName> format:
+	v1 = v1InitialState
+	.
+	.
+	vx = vxInitialState
+	Rules:
+	//block 1
+	*{
+	v1 = v2*v3+!v4;
+	v3 = v2*v3;
+	}
+	//block 2
+	{
+	v2 = !(v9*v3+v4);
+	v3 = ...
+	...
+	}
+	//unblocked
+	v4 = v2*v4+!v7;
+
+In this example, the probability of the selecting block 1 is 33%, block 2 is 33%, and the rule v4=... is 33%.
+In other words, number of individual rules within each block do not increase the block probability.
+As aforementioned, all the rules in the block are executed synchronously if the block is selected.
+If no blocks are detected, "unblocked" execution resumes as per normal.
+
+*: rank priorities are also supported in block mode. replacing "*" with "3:" for example, will cause the entire block to be of rank 3.
+NOTE: similar rules apply for rank priorities.
+
+
+#2
+Both ca(current async) and ra(random async) also supports the toggle-round, which allows one to specify the round at which the state of a variable is toggled. 
+
+NOTE: only one toggle-round per variable is supported.
+NOTE: ensure that the cycles>=toggle-round, else toggle will not occur.
+NOTE: ensure that toggle-round>0
+
+<infileName> format:
+	v1 = v1InitialState 2
+	v2 = v2InitialState 
+	v3 = v3InitialState 5
+	v4 = v4InitialState 6
+	v5 = v5InitialState 
+	.
+	vx = vxInitialState 2
+	Rules:
+	v1 = v2*v3+!v4;
+	.
+	.
+	.
+	v4 = v2*v4+!v7;
+
+In this example, v1 and vx will toggle its state at round 2,
+becoming True if it was False in round 1,
+becoming False if it was True in round 1.
+Even if these variables were unused in rules, one can still toggle the variable. 
+
+
+
+
+FINAL NOTES
+In summary, ca supports all additional modes, while ra only supports state-toggle.
+One can choose a combination of the supported additional modes above for ca, such as specifying rank priority to blockrules, along with specified toggle-rounds in variables. Independent of selection, do ensure that all "NOTE" sections are fulfilled, else undefined behavior will occur.
+
+
+
